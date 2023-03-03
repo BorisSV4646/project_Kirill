@@ -4,6 +4,7 @@ coverage
 coverage.json
 typechain
 typechain-types
+lesson_js
 
 # Hardhat files
 cache
