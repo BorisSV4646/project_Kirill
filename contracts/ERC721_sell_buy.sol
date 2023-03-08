@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "./ERC721_suit_unlimited.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./Level_and_reward.sol";
 
 contract ERC721_sell_buy {
     uint256 private platformFee;
@@ -113,6 +114,9 @@ contract ERC721_sell_buy {
             msg.sender,
             listedNft.tokenId
         );
+
+        Level storage user = suitoption[_tokenId];
+        user.reloaded = block.timestamp;
 
         emit BoughtNFT(
             listedNft.nft,

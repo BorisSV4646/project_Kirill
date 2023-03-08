@@ -11,6 +11,7 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./ERC721_sell_buy.sol";
+import "./Level_and_reward.sol";
 
 // !Неплохая статья по НФТ https://habr.com/ru/post/596343/
 
@@ -224,6 +225,13 @@ contract ERC721_suit_unlimited is
         }
 
         _owners[tokenId] = to;
+
+        Level storage user = suitoption[tokenId];
+        user.color = 1;
+        user.fashion = 1;
+        user.endurance = 1;
+        user.reloaded = block.timestamp;
+        user.level = 1;
 
         emit Transfer(address(0), to, tokenId);
 
