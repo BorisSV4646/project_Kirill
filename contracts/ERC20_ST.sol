@@ -25,6 +25,10 @@ contract ERC20 is Context, IERC20 {
         _;
     }
 
+    fallback() external payable {}
+
+    receive() external payable {}
+
     function name() public view virtual returns (string memory) {
         return _NAME;
     }
@@ -193,18 +197,6 @@ contract ERC20 is Context, IERC20 {
             }
         }
     }
-
-    // function _beforeTokenTransfer(
-    //     address from,
-    //     address to,
-    //     uint256 amount
-    // ) internal virtual {}
-
-    // function _afterTokenTransfer(
-    //     address from,
-    //     address to,
-    //     uint256 amount
-    // ) internal virtual {}
 
     // TODO: Установить зараннее адрес владельца с помощью библиотеки create2
     function setNewCreater(address newcreater) external onlyCreater {

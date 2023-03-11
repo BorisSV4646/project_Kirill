@@ -4,19 +4,19 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "./ERC721_sell_buy.sol";
-import "./Level_and_reward.sol";
+import "./ContractLevelReward.sol";
 
 // !Неплохая статья по НФТ https://habr.com/ru/post/596343/
 
 contract ERC721_suit_unlimited is
-    ERC721_sell_buy,
+    LevelRevard,
     Context,
     ERC165,
     IERC721,
@@ -29,6 +29,7 @@ contract ERC721_suit_unlimited is
 
     Counters.Counter private _nextTokenId;
     uint256 private _tokenPrice = 50000000000000000; //0.05 ETH
+    uint256 private platformFee;
     bool public saleIsActive = true;
     address private _creater;
     string private _baseURI;
@@ -43,15 +44,51 @@ contract ERC721_suit_unlimited is
     // Mapping from owner to operator approvals
     mapping(address => mapping(address => bool)) private _operatorApprovals;
 
-    constructor(string memory name_, string memory symbol_) {
+    mapping(address => mapping(uint256 => ListNFT)) private listNfts;
+
+    struct ListNFT {
+        uint256 tokenId;
+        address seller;
+        uint256 price;
+        bool onsail;
+    }
+
+    event ListedNFT(
+        uint256 indexed tokenId,
+        uint256 price,
+        address indexed seller,
+        bool onsail
+    );
+
+    event CancelListedNFT(uint256 indexed tokenId, address indexed seller);
+
+    event BoughtNFT(
+        uint256 indexed tokenId,
+        uint256 price,
+        address seller,
+        address indexed buyer
+    );
+
+    constructor(
+        string memory name_,
+        string memory symbol_,
+        uint256 _platformFee,
+        address contracttoken_
+    ) LevelRevard(getadress(contracttoken_)) {
         _name = name_;
         _symbol = symbol_;
         _creater = _msgSender();
+        require(_platformFee <= 10000, "can't more than 10 percent");
+        platformFee = _platformFee;
     }
 
     modifier onlyCreater() {
         require(_creater == msg.sender, "Not an owner");
         _;
+    }
+
+    function getadress(address contracttoken_) internal pure returns (address) {
+        return contracttoken_;
     }
 
     function supportsInterface(
@@ -370,5 +407,100 @@ contract ERC721_suit_unlimited is
 
     function totalSupply() public view returns (uint256) {
         return _nextTokenId.current() - 1;
+    }
+
+    function listNft(uint256 _tokenId, uint256 _price) external {
+        address owner = _ownerOf(_tokenId);
+        require(
+            _msgSender() == owner || isApprovedForAll(owner, _msgSender()),
+            "ERC721: approve caller is not token owner or approved for all"
+        );
+        require(owner != address(0), "ERC721: invalid token ID");
+        require(
+            listNfts[msg.sender][_tokenId].onsail == true,
+            "Tolen already listed"
+        );
+
+        listNfts[msg.sender][_tokenId] = ListNFT({
+            tokenId: _tokenId,
+            seller: msg.sender,
+            price: _price,
+            onsail: true
+        });
+
+        emit ListedNFT(_tokenId, _price, msg.sender, true);
+    }
+
+    function cancelListedNFT(address seller, uint256 _tokenId) external {
+        ListNFT memory listedNFT = listNfts[seller][_tokenId];
+        address owner = _ownerOf(_tokenId);
+        require(
+            _msgSender() == owner || isApprovedForAll(owner, _msgSender()),
+            "ERC721: approve caller is not token owner or approved for all"
+        );
+        require(owner != address(0), "ERC721: invalid token ID");
+        require(listedNFT.onsail == false, "Tolen not listed");
+
+        delete listNfts[seller][_tokenId];
+
+        emit CancelListedNFT(_tokenId, msg.sender);
+    }
+
+    function buyNFT(address seller, uint256 _tokenId) external payable {
+        ListNFT storage listedNft = listNfts[seller][_tokenId];
+        address owner = _ownerOf(_tokenId);
+        require(owner != address(0), "ERC721: invalid token ID");
+        require(listedNft.onsail == false, "nft not on sale");
+        require(msg.value >= listedNft.price, "Not enouth money");
+
+        delete listNfts[seller][_tokenId];
+
+        uint256 totalPrice = listedNft.price;
+
+        // Calculate & Transfer platfrom fee
+        uint256 platformFeeTotal = calculatePlatformFee(msg.value);
+        IERC20(listedNft.seller).transferFrom(
+            msg.sender,
+            address(this),
+            platformFeeTotal
+        );
+
+        // Transfer to nft owner
+        IERC20(listedNft.seller).transferFrom(
+            msg.sender,
+            listedNft.seller,
+            totalPrice - platformFeeTotal
+        );
+
+        // Transfer NFT to buyer
+        _transfer(listedNft.seller, msg.sender, listedNft.tokenId);
+
+        Level storage user = suitoption[_tokenId];
+        user.reloaded = block.timestamp;
+
+        emit BoughtNFT(
+            listedNft.tokenId,
+            msg.value,
+            listedNft.seller,
+            msg.sender
+        );
+    }
+
+    function calculatePlatformFee(
+        uint256 _price
+    ) internal view returns (uint256) {
+        return (_price * platformFee) / 10000;
+    }
+
+    function getListedNFT(
+        address _nft,
+        uint256 _tokenId
+    ) public view returns (ListNFT memory) {
+        return listNfts[_nft][_tokenId];
+    }
+
+    function updatePlatformFee(uint256 _platformFee) external onlyCreater {
+        require(_platformFee <= 10000, "can't more than 10 percent");
+        platformFee = _platformFee;
     }
 }
