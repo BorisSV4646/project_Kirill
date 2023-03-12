@@ -1,13 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-// import "./ERC721_suit_unlimited.sol";
-
-/* 
-       ?2. Чтобы можно было поставить рейтинг участнику, сделать систему рейтинга
-       ?6. Продумать про вывод средств с контракта, кто и как может выводить
-    */
-
 contract LevelRevard {
     address private immutable _contracttoken;
 
@@ -19,11 +12,11 @@ contract LevelRevard {
         uint256 level;
     }
 
-    mapping(uint256 => mapping(uint256 => CounterMeet)) private meetCount;
-
     struct CounterMeet {
         uint256 meet;
     }
+
+    mapping(uint256 => mapping(uint256 => CounterMeet)) private meetCount;
 
     mapping(uint256 => Level) public suitoption;
 
@@ -34,15 +27,15 @@ contract LevelRevard {
         _contracttoken = contracttoken_;
     }
 
-    // как убрать в отрицательную сторону или просто сделать сотни
-    function _cafReward(
-        uint256 user_tokenid,
-        uint256 invited_tokenid,
-        uint256 who_invate
+    // TODO: Вычислить математику мультипликатора - сколько прибавлять и отбавлять
+    function _getCafReward(
+        uint256 userTokenId,
+        uint256 invitedTokenId,
+        uint256 whoInvited
     ) internal view returns (uint256) {
-        Level memory user = suitoption[user_tokenid];
-        Level memory invited = suitoption[invited_tokenid];
-        uint meet_count = _showMeetCount(user_tokenid, invited_tokenid);
+        Level memory user = suitoption[userTokenId];
+        Level memory invited = suitoption[invitedTokenId];
+        uint meet_count = _showMeetCount(userTokenId, invitedTokenId);
         uint256 ratio;
         if (user.level < invited.level) {
             ratio = 20;
@@ -52,7 +45,7 @@ contract LevelRevard {
             ratio = 5;
         }
 
-        if (who_invate == 1) {
+        if (whoInvited == 1) {
             ratio += 5;
         } else {
             ratio += 0;
@@ -69,8 +62,10 @@ contract LevelRevard {
         return ratio;
     }
 
-    function _cooldownTime(uint256 user_tokenid) internal view returns (uint) {
-        Level memory user = suitoption[user_tokenid];
+    function _getCooldownTime(
+        uint256 userTokenId
+    ) internal view returns (uint256) {
+        Level memory user = suitoption[userTokenId];
 
         if (user.level == 1) {
             user.reloaded = 1 days;
@@ -89,55 +84,55 @@ contract LevelRevard {
 
     function _rewardToken(
         address owner,
-        uint256 user_tokenid,
-        address invited_people,
-        uint256 invited_tokenid,
-        uint256 who_invate
+        uint256 userTokenId,
+        address invitedPeople,
+        uint256 invitedTokenId,
+        uint256 whoInvited
     ) internal {
-        uint256 ratio_owner = _cafReward(
-            user_tokenid,
-            invited_tokenid,
-            who_invate
+        uint256 ratioOwner = _getCafReward(
+            userTokenId,
+            invitedTokenId,
+            whoInvited
         );
-        uint256 ratio_invited = _cafReward(
-            invited_tokenid,
-            user_tokenid,
-            who_invate
+        uint256 ratioInvited = _getCafReward(
+            invitedTokenId,
+            userTokenId,
+            whoInvited
         );
-        uint256 amount_owner = 10 * ratio_owner;
-        (bool success_owner, ) = _contracttoken.call(
+        uint256 amountOwner = 10 * ratioOwner;
+        (bool successOwner, ) = _contracttoken.call(
             abi.encodeWithSignature(
                 "_mint(address,uint256)",
                 owner,
-                amount_owner
+                amountOwner
             )
         );
-        require(success_owner, "Cant sent reward");
+        require(successOwner, "Cant sent reward");
 
-        emit Responce(success_owner);
+        emit Responce(successOwner);
 
-        uint256 amount_invited = 10 * ratio_invited;
-        (bool success_invited, ) = _contracttoken.call(
+        uint256 amountInvited = 10 * ratioInvited;
+        (bool successInvited, ) = _contracttoken.call(
             abi.encodeWithSignature(
                 "_mint(address,uint256)",
-                invited_people,
-                amount_invited
+                invitedPeople,
+                amountInvited
             )
         );
-        require(success_invited, "Cant sent reward");
+        require(successInvited, "Cant sent reward");
 
-        emit Responce(success_invited);
+        emit Responce(successInvited);
     }
 
     function _setMeetCount(
-        uint256 user_tokenid,
-        uint256 invited_tokenid
+        uint256 userTokenId,
+        uint256 invitedTokenId
     ) internal {
-        CounterMeet storage counterMeetUser = meetCount[user_tokenid][
-            invited_tokenid
+        CounterMeet storage counterMeetUser = meetCount[userTokenId][
+            invitedTokenId
         ];
-        CounterMeet storage counterMeetInvite = meetCount[invited_tokenid][
-            user_tokenid
+        CounterMeet storage counterMeetInvite = meetCount[invitedTokenId][
+            userTokenId
         ];
         counterMeetUser.meet++;
         counterMeetInvite.meet++;
@@ -149,14 +144,14 @@ contract LevelRevard {
     }
 
     function _showMeetCount(
-        uint256 user_tokenid,
-        uint256 invited_tokenid
+        uint256 userTokenId,
+        uint256 invitedTokenId
     ) internal view returns (uint) {
-        CounterMeet memory counterMeetUser = meetCount[user_tokenid][
-            invited_tokenid
+        CounterMeet memory counterMeetUser = meetCount[userTokenId][
+            invitedTokenId
         ];
-        CounterMeet memory counterMeetInvite = meetCount[invited_tokenid][
-            user_tokenid
+        CounterMeet memory counterMeetInvite = meetCount[invitedTokenId][
+            userTokenId
         ];
 
         require(
@@ -167,29 +162,29 @@ contract LevelRevard {
         return counterMeetUser.meet;
     }
 
-    // if who_invate == 1 - You invite people, if == 0, people invite you
+    // if whoInvite == 1 - You invite people, if == 0, people invite you
     function _ckeckMeet(
-        uint256 user_tokenid,
-        uint256 invited_tokenid,
-        uint256 who_invate
+        uint256 userTokenId,
+        uint256 invitedTokenId,
+        uint256 whoInvite
     ) internal {
-        Level storage user = suitoption[user_tokenid];
-        Level storage invited = suitoption[invited_tokenid];
+        Level storage user = suitoption[userTokenId];
+        Level storage invited = suitoption[invitedTokenId];
 
-        if (who_invate == 1) {
+        if (whoInvite == 1) {
             require(
                 user.level == invited.level || user.level == invited.level - 1,
                 "Not enouth level to meet"
             );
-        } else if (who_invate == 0) {
+        } else if (whoInvite == 0) {
             require(
                 user.level == invited.level || user.level == invited.level + 1,
                 "Not enouth level to meet"
             );
         }
 
-        CounterMeet memory meet_counter = meetCount[user_tokenid][
-            invited_tokenid
+        CounterMeet memory meet_counter = meetCount[userTokenId][
+            invitedTokenId
         ];
         uint meet_count = meet_counter.meet;
         if (meet_count == 1) {
@@ -214,24 +209,18 @@ contract LevelRevard {
     }
 
     // TODO: сделать просто добавление пользователю очка, за которое он может прокачать одну из трех характеристик
-    // ?сделать изменение картинки (uri) токена в зависимости от уровня
+    // TODO: сделать изменение картинки (uri) токена в зависимости от уровня
     function addLevelAndRewardForMeet(
         address owner,
-        uint256 tokenid,
-        address invited_people,
-        uint256 invited_tokenid,
-        uint256 who_invate
+        uint256 userTokenId,
+        address invitedPeople,
+        uint256 invitedTokenId,
+        uint256 whoInvite
     ) external {
-        Level storage user = suitoption[tokenid];
-        Level storage invited = suitoption[invited_tokenid];
+        Level storage user = suitoption[userTokenId];
+        Level storage invited = suitoption[invitedTokenId];
 
-        user.reloaded = uint32(block.timestamp + _cooldownTime(tokenid));
-
-        invited.reloaded = uint32(
-            block.timestamp + _cooldownTime(invited_tokenid)
-        );
-
-        _ckeckMeet(tokenid, invited_tokenid, who_invate);
+        _ckeckMeet(userTokenId, invitedTokenId, whoInvite);
 
         user.color++;
         user.endurance++;
@@ -266,21 +255,29 @@ contract LevelRevard {
 
         _rewardToken(
             owner,
-            tokenid,
-            invited_people,
-            invited_tokenid,
-            who_invate
+            userTokenId,
+            invitedPeople,
+            invitedTokenId,
+            whoInvite
         );
 
-        _setMeetCount(tokenid, invited_tokenid);
+        user.reloaded = uint32(block.timestamp + _getCooldownTime(userTokenId));
 
-        emit NewLevel(owner, tokenid);
+        invited.reloaded = uint32(
+            block.timestamp + _getCooldownTime(invitedTokenId)
+        );
 
-        emit NewLevel(invited_people, invited_tokenid);
+        _setMeetCount(userTokenId, invitedTokenId);
+
+        emit NewLevel(owner, userTokenId);
+
+        emit NewLevel(invitedPeople, invitedTokenId);
     }
 
-    function _priceForUpgrade(uint tokenid) internal view returns (uint256) {
-        Level memory user = suitoption[tokenid];
+    function _priceForUpgrade(
+        uint userTokenId
+    ) internal view returns (uint256) {
+        Level memory user = suitoption[userTokenId];
         uint amountToUpgrade;
 
         // Проверить корректность работы цикла
@@ -299,9 +296,12 @@ contract LevelRevard {
         return amountToUpgrade;
     }
 
-    function addLevelForApgrade(address owner, uint tokenid) external payable {
-        Level storage user = suitoption[tokenid];
-        uint price = _priceForUpgrade(tokenid);
+    function addLevelForApgrade(
+        address owner,
+        uint userTokenId
+    ) external payable {
+        Level storage user = suitoption[userTokenId];
+        uint price = _priceForUpgrade(userTokenId);
         require(msg.value >= price, "Not enough money");
 
         _payForApgrade(owner, price);
@@ -321,7 +321,7 @@ contract LevelRevard {
             user.level = 5;
         }
 
-        emit NewLevel(owner, tokenid);
+        emit NewLevel(owner, userTokenId);
     }
 
     function _payForApgrade(address account, uint256 amount) internal {

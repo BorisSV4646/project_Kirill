@@ -140,7 +140,7 @@ contract ERC721_sell_buy {
         return listNfts[_nft][_tokenId];
     }
 
-    function updatePlatformFee(uint256 _platformFee) external onlyCreater {
+    function updatePlatformFee(uint256 _platformFee) external {
         require(_platformFee <= 10000, "can't more than 10 percent");
         platformFee = _platformFee;
     }

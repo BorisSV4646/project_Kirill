@@ -1,21 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
 import "./ContractLevelReward.sol";
 
-// !Неплохая статья по НФТ https://habr.com/ru/post/596343/
-
-contract ERC721_suit_unlimited is
+contract ERC721SuitUnlimited is
     LevelRevard,
     Context,
     ERC165,
@@ -35,15 +33,10 @@ contract ERC721_suit_unlimited is
     string private _baseURI;
     string private _name;
     string private _symbol;
-    // Mapping from token ID to owner address
     mapping(uint256 => address) private _owners;
-    // Mapping owner address to token count
     mapping(address => uint256) private _balances;
-    // Mapping from token ID to approved address
     mapping(uint256 => address) private _tokenApprovals;
-    // Mapping from owner to operator approvals
     mapping(address => mapping(address => bool)) private _operatorApprovals;
-
     mapping(address => mapping(uint256 => ListNFT)) private listNfts;
 
     struct ListNFT {
@@ -136,7 +129,7 @@ contract ERC721_suit_unlimited is
     }
 
     function approve(address to, uint256 tokenId) public {
-        address owner = ERC721_suit_unlimited.ownerOf(tokenId);
+        address owner = ERC721SuitUnlimited.ownerOf(tokenId);
         require(to != owner, "ERC721: approval to current owner");
 
         require(
@@ -220,7 +213,7 @@ contract ERC721_suit_unlimited is
         address spender,
         uint256 tokenId
     ) internal view returns (bool) {
-        address owner = ERC721_suit_unlimited.ownerOf(tokenId);
+        address owner = ERC721SuitUnlimited.ownerOf(tokenId);
         return (spender == owner ||
             isApprovedForAll(owner, spender) ||
             getApproved(tokenId) == spender);
@@ -275,29 +268,9 @@ contract ERC721_suit_unlimited is
         _afterTokenTransfer(address(0), to, tokenId, 1);
     }
 
-    // ?Burn take off
-    // function _burn(uint256 tokenId) internal {
-    //     address owner = ERC721.ownerOf(tokenId);
-
-    //     _beforeTokenTransfer(owner, address(0), tokenId, 1);
-
-    //     // Update ownership in case tokenId was transferred by `_beforeTokenTransfer` hook
-    //     owner = ERC721.ownerOf(tokenId);
-    //     delete _tokenApprovals[tokenId];
-
-    //     unchecked {
-    //         _balances[owner] -= 1;
-    //     }
-    //     delete _owners[tokenId];
-
-    //     emit Transfer(owner, address(0), tokenId);
-
-    //     _afterTokenTransfer(owner, address(0), tokenId, 1);
-    // }
-
     function _transfer(address from, address to, uint256 tokenId) internal {
         require(
-            ERC721_suit_unlimited.ownerOf(tokenId) == from,
+            ERC721SuitUnlimited.ownerOf(tokenId) == from,
             "ERC721: transfer from incorrect owner"
         );
         require(to != address(0), "ERC721: transfer to the zero address");
@@ -306,7 +279,7 @@ contract ERC721_suit_unlimited is
 
         // Check that tokenId was not transferred by `_beforeTokenTransfer` hook
         require(
-            ERC721_suit_unlimited.ownerOf(tokenId) == from,
+            ERC721SuitUnlimited.ownerOf(tokenId) == from,
             "ERC721: transfer from incorrect owner"
         );
 
@@ -325,7 +298,7 @@ contract ERC721_suit_unlimited is
 
     function _approve(address to, uint256 tokenId) internal {
         _tokenApprovals[tokenId] = to;
-        emit Approval(ERC721_suit_unlimited.ownerOf(tokenId), to, tokenId);
+        emit Approval(ERC721SuitUnlimited.ownerOf(tokenId), to, tokenId);
     }
 
     function _setApprovalForAll(
@@ -409,7 +382,7 @@ contract ERC721_suit_unlimited is
         return _nextTokenId.current() - 1;
     }
 
-    function listNft(uint256 _tokenId, uint256 _price) external {
+    function listNft(uint256 _tokenId, uint256 _price) public {
         address owner = _ownerOf(_tokenId);
         require(
             _msgSender() == owner || isApprovedForAll(owner, _msgSender()),
@@ -431,7 +404,7 @@ contract ERC721_suit_unlimited is
         emit ListedNFT(_tokenId, _price, msg.sender, true);
     }
 
-    function cancelListedNFT(address seller, uint256 _tokenId) external {
+    function cancelListedNFT(address seller, uint256 _tokenId) public {
         ListNFT memory listedNFT = listNfts[seller][_tokenId];
         address owner = _ownerOf(_tokenId);
         require(
@@ -446,7 +419,7 @@ contract ERC721_suit_unlimited is
         emit CancelListedNFT(_tokenId, msg.sender);
     }
 
-    function buyNFT(address seller, uint256 _tokenId) external payable {
+    function buyNFT(address seller, uint256 _tokenId) public payable {
         ListNFT storage listedNft = listNfts[seller][_tokenId];
         address owner = _ownerOf(_tokenId);
         require(owner != address(0), "ERC721: invalid token ID");
@@ -499,8 +472,16 @@ contract ERC721_suit_unlimited is
         return listNfts[_nft][_tokenId];
     }
 
-    function updatePlatformFee(uint256 _platformFee) external onlyCreater {
+    function updatePlatformFee(uint256 _platformFee) public onlyCreater {
         require(_platformFee <= 10000, "can't more than 10 percent");
         platformFee = _platformFee;
+    }
+
+    function getBalance() external view onlyCreater returns (uint256) {
+        return address(this).balance;
+    }
+
+    function withDraw(address payable _to) external onlyCreater {
+        _to.transfer(address(this).balance);
     }
 }
