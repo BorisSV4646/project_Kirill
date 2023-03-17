@@ -13,6 +13,8 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
 import "./ContractLevelReward.sol";
 
+// !Распределить функционал контракта между бэком, фронтом и самим контрактом
+
 contract ERC721SuitUnlimited is
     LevelRevard,
     Context,
@@ -26,13 +28,15 @@ contract ERC721SuitUnlimited is
     using Counters for Counters.Counter;
 
     Counters.Counter private _nextTokenId;
+    using Counters for Counters.Counter;
     uint256 private _tokenPrice = 50000000000000000; //0.05 ETH
     uint256 private platformFee;
-    bool public saleIsActive = true;
-    address private _creater;
     string private _baseURI;
     string private _name;
     string private _symbol;
+    bool public saleIsActive = true;
+    address private _creater;
+    address private _contracttoken;
     mapping(uint256 => address) private _owners;
     mapping(address => uint256) private _balances;
     mapping(uint256 => address) private _tokenApprovals;
@@ -58,7 +62,7 @@ contract ERC721SuitUnlimited is
     event BoughtNFT(
         uint256 indexed tokenId,
         uint256 price,
-        address seller,
+        address indexed seller,
         address indexed buyer
     );
 
@@ -80,7 +84,10 @@ contract ERC721SuitUnlimited is
         _;
     }
 
-    function getadress(address contracttoken_) internal pure returns (address) {
+    receive() external payable {}
+
+    function getadress(address contracttoken_) internal returns (address) {
+        _contracttoken = contracttoken_;
         return contracttoken_;
     }
 
@@ -245,11 +252,6 @@ contract ERC721SuitUnlimited is
         require(!_exists(tokenId), "ERC721: token already minted");
         require(_tokenPrice <= msg.value, "Ether value sent is not correct");
 
-        _beforeTokenTransfer(address(0), to, tokenId, 1);
-
-        // Check that tokenId was not minted by `_beforeTokenTransfer` hook
-        require(!_exists(tokenId), "ERC721: token already minted");
-
         unchecked {
             _balances[to] += 1;
         }
@@ -264,8 +266,6 @@ contract ERC721SuitUnlimited is
         user.level = 1;
 
         emit Transfer(address(0), to, tokenId);
-
-        _afterTokenTransfer(address(0), to, tokenId, 1);
     }
 
     function _transfer(address from, address to, uint256 tokenId) internal {
@@ -274,10 +274,6 @@ contract ERC721SuitUnlimited is
             "ERC721: transfer from incorrect owner"
         );
         require(to != address(0), "ERC721: transfer to the zero address");
-
-        _beforeTokenTransfer(from, to, tokenId, 1);
-
-        // Check that tokenId was not transferred by `_beforeTokenTransfer` hook
         require(
             ERC721SuitUnlimited.ownerOf(tokenId) == from,
             "ERC721: transfer from incorrect owner"
@@ -292,8 +288,6 @@ contract ERC721SuitUnlimited is
         _owners[tokenId] = to;
 
         emit Transfer(from, to, tokenId);
-
-        _afterTokenTransfer(from, to, tokenId, 1);
     }
 
     function _approve(address to, uint256 tokenId) internal {
@@ -347,22 +341,12 @@ contract ERC721SuitUnlimited is
         }
     }
 
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 /* firstTokenId */,
-        uint256 batchSize
-    ) internal {}
-
-    function _afterTokenTransfer(
-        address from,
-        address to,
-        uint256 firstTokenId,
-        uint256 batchSize
-    ) internal {}
-
     function flipSaleState() public onlyCreater {
         saleIsActive = !saleIsActive;
+    }
+
+    function getBalance() public view onlyCreater returns (uint256) {
+        return address(this).balance;
     }
 
     function withdraw() public onlyCreater {
@@ -384,13 +368,10 @@ contract ERC721SuitUnlimited is
 
     function listNft(uint256 _tokenId, uint256 _price) public {
         address owner = _ownerOf(_tokenId);
-        require(
-            _msgSender() == owner || isApprovedForAll(owner, _msgSender()),
-            "ERC721: approve caller is not token owner or approved for all"
-        );
+        require(_msgSender() == owner, "Not owner NFT");
         require(owner != address(0), "ERC721: invalid token ID");
         require(
-            listNfts[msg.sender][_tokenId].onsail == true,
+            listNfts[msg.sender][_tokenId].onsail == false,
             "Tolen already listed"
         );
 
@@ -404,48 +385,42 @@ contract ERC721SuitUnlimited is
         emit ListedNFT(_tokenId, _price, msg.sender, true);
     }
 
-    function cancelListedNFT(address seller, uint256 _tokenId) public {
-        ListNFT memory listedNFT = listNfts[seller][_tokenId];
+    function cancelListedNFT(uint256 _tokenId) public {
+        ListNFT memory listedNFT = listNfts[msg.sender][_tokenId];
         address owner = _ownerOf(_tokenId);
-        require(
-            _msgSender() == owner || isApprovedForAll(owner, _msgSender()),
-            "ERC721: approve caller is not token owner or approved for all"
-        );
+        require(_msgSender() == owner, "Not owner NFT");
         require(owner != address(0), "ERC721: invalid token ID");
         require(listedNFT.onsail == false, "Tolen not listed");
 
-        delete listNfts[seller][_tokenId];
+        delete listNfts[msg.sender][_tokenId];
 
         emit CancelListedNFT(_tokenId, msg.sender);
     }
 
     function buyNFT(address seller, uint256 _tokenId) public payable {
-        ListNFT storage listedNft = listNfts[seller][_tokenId];
+        ListNFT memory listedNft = listNfts[seller][_tokenId];
         address owner = _ownerOf(_tokenId);
         require(owner != address(0), "ERC721: invalid token ID");
-        require(listedNft.onsail == false, "nft not on sale");
+        require(listedNft.onsail == true, "NFT not on sale");
         require(msg.value >= listedNft.price, "Not enouth money");
 
         delete listNfts[seller][_tokenId];
 
         uint256 totalPrice = listedNft.price;
+        uint256 platformFeeTotal = calculatePlatformFee(totalPrice);
 
-        // Calculate & Transfer platfrom fee
-        uint256 platformFeeTotal = calculatePlatformFee(msg.value);
-        IERC20(listedNft.seller).transferFrom(
+        IERC20(_contracttoken).transferFrom(
             msg.sender,
             address(this),
             platformFeeTotal
         );
 
-        // Transfer to nft owner
-        IERC20(listedNft.seller).transferFrom(
+        IERC20(_contracttoken).transferFrom(
             msg.sender,
             listedNft.seller,
             totalPrice - platformFeeTotal
         );
 
-        // Transfer NFT to buyer
         _transfer(listedNft.seller, msg.sender, listedNft.tokenId);
 
         Level storage user = suitoption[_tokenId];
@@ -466,10 +441,10 @@ contract ERC721SuitUnlimited is
     }
 
     function getListedNFT(
-        address _nft,
+        address seller,
         uint256 _tokenId
     ) public view returns (ListNFT memory) {
-        return listNfts[_nft][_tokenId];
+        return listNfts[seller][_tokenId];
     }
 
     function updatePlatformFee(uint256 _platformFee) public onlyCreater {
@@ -477,11 +452,12 @@ contract ERC721SuitUnlimited is
         platformFee = _platformFee;
     }
 
-    function getBalance() external view onlyCreater returns (uint256) {
-        return address(this).balance;
-    }
+    function changeCreatorERC20ST(address newcreater) public onlyCreater {
+        (bool success, ) = _contracttoken.call(
+            abi.encodeWithSignature("setNewCreater(address)", newcreater)
+        );
+        require(success, "Cant change creator");
 
-    function withDraw(address payable _to) external onlyCreater {
-        _to.transfer(address(this).balance);
+        emit Responce(success);
     }
 }

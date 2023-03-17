@@ -5,8 +5,8 @@ coverage.json
 typechain
 typechain-types
 /lesson_js
-/contract/No_my
-/contract/Part_contract
+/contracts/No_my
+/contracts/Part_contract
 
 
 # Hardhat files

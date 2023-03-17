@@ -1,13 +1,13 @@
 {
   "name": "project_kirill",
   "version": "1.0.0",
-  "description": "",
+  "description": "Networking App",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
+  "author": "Boris Vinnik",
   "license": "ISC",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^2.0.1",

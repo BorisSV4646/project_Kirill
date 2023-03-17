@@ -13,9 +13,9 @@ contract ERC20_SUIT_TOKEN is Context, IERC20 {
     string private constant _NAME = "SUITSTOKEN";
     string private constant _SYMBOL = "ST";
 
-    constructor(uint256 initialSupply, address creater_) {
+    constructor(uint256 initialSupply) {
         require(_CAP > 0, "ERC20Capped: cap is 0");
-        creater = creater_;
+        creater = _msgSender();
         _mint(_msgSender(), initialSupply * (10 ** decimals()));
     }
 

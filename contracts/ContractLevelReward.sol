@@ -20,8 +20,8 @@ contract LevelRevard {
 
     mapping(uint256 => Level) public suitoption;
 
-    event Responce(bool responce);
-    event NewLevel(address owner, uint256 tokenid);
+    event Responce(bool indexed responce);
+    event NewLevel(address indexed owner, uint256 indexed tokenid);
 
     constructor(address contracttoken_) {
         _contracttoken = contracttoken_;
