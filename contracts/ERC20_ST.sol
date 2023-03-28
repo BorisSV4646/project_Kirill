@@ -137,7 +137,7 @@ contract ERC20_SUIT_TOKEN is Context, IERC20 {
         emit Transfer(address(0), account, amount);
     }
 
-    function _burn(address account, uint256 amount) internal onlyCreater {
+    function _burn(address account, uint256 amount) public onlyCreater {
         require(account != address(0), "ERC20: burn from the zero address");
 
         uint256 accountBalance = _balances[account];

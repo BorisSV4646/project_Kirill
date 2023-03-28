@@ -194,7 +194,6 @@ contract ERC721SuitUnlimited is
         _safeTransfer(from, to, tokenId, data);
     }
 
-    // !Откатиться ли транзакция, если контракт не знает этот стандарт - ведь проверка уже после выполнения трансфера? Протестировать
     function _safeTransfer(
         address from,
         address to,
@@ -232,7 +231,6 @@ contract ERC721SuitUnlimited is
         _safeMint(to, currentTokenId, "");
     }
 
-    // !Откатиться ли транзакция, если контракт не знает этот стандарт - ведь проверка уже после выполнения минта? Протестировать
     function _safeMint(
         address to,
         uint256 tokenId,
@@ -274,10 +272,6 @@ contract ERC721SuitUnlimited is
             "ERC721: transfer from incorrect owner"
         );
         require(to != address(0), "ERC721: transfer to the zero address");
-        require(
-            ERC721SuitUnlimited.ownerOf(tokenId) == from,
-            "ERC721: transfer from incorrect owner"
-        );
 
         delete _tokenApprovals[tokenId];
 
@@ -355,6 +349,7 @@ contract ERC721SuitUnlimited is
     }
 
     function setPrice(uint256 _newPrice) public onlyCreater {
+        require(_newPrice > 0, "Price can`t 0");
         _tokenPrice = _newPrice;
     }
 
@@ -390,7 +385,7 @@ contract ERC721SuitUnlimited is
         address owner = _ownerOf(_tokenId);
         require(_msgSender() == owner, "Not owner NFT");
         require(owner != address(0), "ERC721: invalid token ID");
-        require(listedNFT.onsail == false, "Tolen not listed");
+        require(listedNFT.onsail != false, "Token not listed");
 
         delete listNfts[msg.sender][_tokenId];
 

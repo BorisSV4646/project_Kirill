@@ -303,6 +303,7 @@ contract LevelRevard {
         Level storage user = suitoption[userTokenId];
         uint price = _priceForUpgrade(userTokenId);
         require(msg.value >= price, "Not enough money");
+        require(msg.sender == owner, "Not an owner to burn tokens");
 
         _payForApgrade(owner, price);
 
