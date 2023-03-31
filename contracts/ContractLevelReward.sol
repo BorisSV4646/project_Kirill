@@ -31,11 +31,11 @@ contract LevelRevard {
     function _getCafReward(
         uint256 userTokenId,
         uint256 invitedTokenId,
-        uint256 whoInvited
+        bool whoInvited
     ) internal view returns (uint256) {
         Level memory user = suitoption[userTokenId];
         Level memory invited = suitoption[invitedTokenId];
-        uint meet_count = _showMeetCount(userTokenId, invitedTokenId);
+        uint meet_count = showMeetCount(userTokenId, invitedTokenId);
         uint256 ratio;
         if (user.level < invited.level) {
             ratio = 20;
@@ -45,7 +45,7 @@ contract LevelRevard {
             ratio = 5;
         }
 
-        if (whoInvited == 1) {
+        if (whoInvited == true) {
             ratio += 5;
         } else {
             ratio += 0;
@@ -87,7 +87,7 @@ contract LevelRevard {
         uint256 userTokenId,
         address invitedPeople,
         uint256 invitedTokenId,
-        uint256 whoInvited
+        bool whoInvited
     ) internal {
         uint256 ratioOwner = _getCafReward(
             userTokenId,
@@ -97,7 +97,7 @@ contract LevelRevard {
         uint256 ratioInvited = _getCafReward(
             invitedTokenId,
             userTokenId,
-            whoInvited
+            !whoInvited
         );
         uint256 amountOwner = 10 * ratioOwner;
         (bool successOwner, ) = _contracttoken.call(
@@ -143,10 +143,11 @@ contract LevelRevard {
         );
     }
 
-    function _showMeetCount(
+    // !может любой посмотреть колличество встреч любого
+    function showMeetCount(
         uint256 userTokenId,
         uint256 invitedTokenId
-    ) internal view returns (uint) {
+    ) public view returns (uint) {
         CounterMeet memory counterMeetUser = meetCount[userTokenId][
             invitedTokenId
         ];
@@ -162,21 +163,21 @@ contract LevelRevard {
         return counterMeetUser.meet;
     }
 
-    // if whoInvite == 1 - You invite people, if == 0, people invite you
+    // if whoInvite == true - You invite people, if == false, people invite you
     function _ckeckMeet(
         uint256 userTokenId,
         uint256 invitedTokenId,
-        uint256 whoInvite
+        bool whoInvite
     ) internal {
         Level storage user = suitoption[userTokenId];
         Level storage invited = suitoption[invitedTokenId];
 
-        if (whoInvite == 1) {
+        if (whoInvite == true) {
             require(
                 user.level == invited.level || user.level == invited.level - 1,
                 "Not enouth level to meet"
             );
-        } else if (whoInvite == 0) {
+        } else if (whoInvite == false) {
             require(
                 user.level == invited.level || user.level == invited.level + 1,
                 "Not enouth level to meet"
@@ -215,7 +216,7 @@ contract LevelRevard {
         uint256 userTokenId,
         address invitedPeople,
         uint256 invitedTokenId,
-        uint256 whoInvite
+        bool whoInvite
     ) external {
         Level storage user = suitoption[userTokenId];
         Level storage invited = suitoption[invitedTokenId];
@@ -261,6 +262,7 @@ contract LevelRevard {
             whoInvite
         );
 
+        // почиатть про уязвимость block.timestamp и call и delegatecall
         user.reloaded = uint32(block.timestamp + _getCooldownTime(userTokenId));
 
         invited.reloaded = uint32(

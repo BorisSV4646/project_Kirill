@@ -1,6 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { assert } = require("assert");
+const { setBalance } = require("@nomicfoundation/hardhat-network-helpers");
 // https://stermi.medium.com/how-to-create-tests-for-your-solidity-smart-contract-9fbbc4f0a319
 // полезная статья из нее можно взять про разворачивание сразу двух контрактов
 describe("ERC20_SUIT_TOKEN", function () {
@@ -417,30 +418,78 @@ describe("ERC20_SUIT_TOKEN", function () {
 
   it("Function buyNFT() - user can buy NFT", async function () {
     const SetPriceOwner = payments.setPrice(500);
-    await payments._safeMint(owner.address, {
+    const notOwner = payments.connect(acc2);
+    await notOwner._safeMint(acc2.address, {
       value: 550,
     });
 
-    await expect(payments.buyNFT(owner.address, 0)).to.be.revertedWith(
+    await expect(payments.buyNFT(acc2.address, 0)).to.be.revertedWith(
       "NFT not on sale"
     );
 
-    const sell = await payments.listNft(0, 700);
-    const listNFT = await payments.getListedNFT(owner.address, 0);
+    const sell = await notOwner.listNft(0, 700);
+    const listNFT = await notOwner.getListedNFT(acc2.address, 0);
     await expect(await listNFT["onsail"]).to.true;
 
-    const buyNFT = await payments.connect(acc2).buyNFT(owner.address, 0, {
-      value: 850,
+    await expect(payments.buyNFT(acc2.address, 1)).to.be.revertedWith(
+      "ERC721: invalid token ID"
+    );
+
+    await expect(payments.buyNFT(acc2.address, 0)).to.be.revertedWith(
+      "Not enouth money"
+    );
+
+    const amount = 850;
+    const nowOwnerERC20 = paymentsErc20.connect(owner);
+    const approve = await nowOwnerERC20.approve(payments.address, amount);
+    const buyNFT = await payments.buyNFT(acc2.address, 0, {
+      value: amount,
     });
 
     await expect(buyNFT).to.changeTokenBalances(
       payments,
-      [owner, acc2],
+      [acc2, owner],
       [-1, 1]
     );
 
+    expect(await paymentsErc20.balanceOf(acc2.address)).to.be.equal(679);
+    expect(await paymentsErc20.balanceOf(owner.address)).to.be.equal(
+      99999999999999999300n
+    );
+    expect(await paymentsErc20.balanceOf(payments.address)).to.be.equal(21);
+
     await expect(buyNFT)
       .to.emit(payments, "BoughtNFT")
-      .withArgs(0, 850, owner.address, acc2.address);
+      .withArgs(0, 850, acc2.address, owner.address);
+
+    const newReloaded = await payments.suitoption(0);
+    const block = await ethers.provider.getBlock(buyNFT.blockHash);
+    await expect(await newReloaded["reloaded"]).to.be.equal(block.timestamp);
+
+    const cancelNFT = await payments.getListedNFT(owner.address, 0);
+    await expect(await cancelNFT["onsail"]).to.false;
+  });
+
+  it("Function updatePlatformFee() - owner can updare platforfee", async function () {
+    const changeFee = await payments.updatePlatformFee(9000);
+
+    await expect(payments.updatePlatformFee(10001)).to.be.revertedWith(
+      "can't more than 10 percent"
+    );
+
+    await expect(
+      payments.connect(acc2).updatePlatformFee(5000)
+    ).to.be.revertedWith("Not an owner");
+  });
+
+  it("Function changeCreatorERC20ST() - owner can change creator ERC20", async function () {
+    const changeCreator = await payments.changeCreatorERC20ST(acc2.address);
+    expect(await paymentsErc20.creater()).to.be.eq(acc2.address);
+
+    await expect(changeCreator).to.emit(payments, "Responce").withArgs(true);
+
+    await expect(
+      payments.connect(acc2).changeCreatorERC20ST(acc3.address)
+    ).to.be.revertedWith("Not an owner");
   });
 });

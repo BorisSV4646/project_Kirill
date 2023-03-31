@@ -392,6 +392,7 @@ contract ERC721SuitUnlimited is
         emit CancelListedNFT(_tokenId, msg.sender);
     }
 
+    // ! до покупки надо предоставить разрешение на распоряжение токенами
     function buyNFT(address seller, uint256 _tokenId) public payable {
         ListNFT memory listedNft = listNfts[seller][_tokenId];
         address owner = _ownerOf(_tokenId);
@@ -432,7 +433,7 @@ contract ERC721SuitUnlimited is
     function calculatePlatformFee(
         uint256 _price
     ) internal view returns (uint256) {
-        return (_price * platformFee) / 10000;
+        return uint((_price * platformFee) / 100);
     }
 
     function getListedNFT(
