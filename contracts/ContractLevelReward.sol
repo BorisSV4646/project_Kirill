@@ -21,7 +21,9 @@ contract LevelRevard {
     mapping(uint256 => Level) public suitoption;
 
     event Responce(bool indexed responce);
+    event AddReward(address indexed owner, uint256 indexed tokenid);
     event NewLevel(address indexed owner, uint256 indexed tokenid);
+    event Upgrade(address indexed owner, uint256 indexed tokenid);
 
     constructor(address contracttoken_) {
         _contracttoken = contracttoken_;
@@ -59,11 +61,22 @@ contract LevelRevard {
             ratio -= 20;
         }
 
+        if (user.level == 2) {
+            ratio += 7;
+        } else if (user.level == 3) {
+            ratio += 10;
+        } else if (user.level == 4) {
+            ratio += 13;
+        } else if (user.level == 5) {
+            ratio += 15;
+        }
+
         return ratio;
     }
 
     function _getCooldownTime(
-        uint256 userTokenId
+        uint256 userTokenId,
+        uint256 invitedTokenId
     ) internal view returns (uint256) {
         Level memory user = suitoption[userTokenId];
 
@@ -77,6 +90,22 @@ contract LevelRevard {
             user.reloaded = 8 hours;
         } else if (user.level == 5) {
             user.reloaded = 6 hours;
+        }
+
+        CounterMeet memory meet_counter = meetCount[userTokenId][
+            invitedTokenId
+        ];
+        uint meet_count = meet_counter.meet;
+        if (meet_count == 1) {
+            user.reloaded += 1 days;
+        } else if (meet_count == 2) {
+            user.reloaded += 36 hours;
+        } else if (meet_count == 3) {
+            user.reloaded += 2 days;
+        } else if (meet_count == 4) {
+            user.reloaded += 3 days;
+        } else if (meet_count > 4) {
+            user.reloaded += 5 days;
         }
 
         return user.reloaded;
@@ -168,13 +197,13 @@ contract LevelRevard {
         uint256 userTokenId,
         uint256 invitedTokenId,
         bool whoInvite
-    ) internal {
+    ) internal view {
         Level storage user = suitoption[userTokenId];
         Level storage invited = suitoption[invitedTokenId];
 
         if (whoInvite == true) {
             require(
-                user.level == invited.level || user.level == invited.level - 1,
+                user.level == invited.level || user.level - 1 == invited.level,
                 "Not enouth level to meet"
             );
         } else if (whoInvite == false) {
@@ -182,27 +211,6 @@ contract LevelRevard {
                 user.level == invited.level || user.level == invited.level + 1,
                 "Not enouth level to meet"
             );
-        }
-
-        CounterMeet memory meet_counter = meetCount[userTokenId][
-            invitedTokenId
-        ];
-        uint meet_count = meet_counter.meet;
-        if (meet_count == 1) {
-            user.reloaded += 1 days;
-            invited.reloaded += 1 days;
-        } else if (meet_count == 2) {
-            user.reloaded += 36 hours;
-            invited.reloaded += 36 hours;
-        } else if (meet_count == 3) {
-            user.reloaded += 2 days;
-            invited.reloaded += 2 days;
-        } else if (meet_count == 4) {
-            user.reloaded += 3 days;
-            invited.reloaded += 3 days;
-        } else if (meet_count > 4) {
-            user.reloaded += 5 days;
-            invited.reloaded += 5 days;
         }
 
         require(block.timestamp >= user.reloaded, "Too early for user");
@@ -263,35 +271,52 @@ contract LevelRevard {
         );
 
         // почиатть про уязвимость block.timestamp и call и delegatecall
-        user.reloaded = uint32(block.timestamp + _getCooldownTime(userTokenId));
+        user.reloaded = uint32(
+            block.timestamp + _getCooldownTime(userTokenId, invitedTokenId)
+        );
 
         invited.reloaded = uint32(
-            block.timestamp + _getCooldownTime(invitedTokenId)
+            block.timestamp + _getCooldownTime(invitedTokenId, userTokenId)
         );
 
         _setMeetCount(userTokenId, invitedTokenId);
 
-        emit NewLevel(owner, userTokenId);
+        emit AddReward(owner, userTokenId);
 
-        emit NewLevel(invitedPeople, invitedTokenId);
+        emit AddReward(invitedPeople, invitedTokenId);
+
+        if (
+            suntolevel == 12 ||
+            suntolevel == 21 ||
+            suntolevel == 30 ||
+            suntolevel == 42
+        ) {
+            emit NewLevel(owner, userTokenId);
+        }
+
+        if (
+            suntolevel_invited == 12 ||
+            suntolevel_invited == 21 ||
+            suntolevel_invited == 30 ||
+            suntolevel_invited == 42
+        ) {
+            emit NewLevel(invitedPeople, invitedTokenId);
+        }
     }
 
-    function _priceForUpgrade(
-        uint userTokenId
-    ) internal view returns (uint256) {
+    function _priceForUpgrade(uint userTokenId) public view returns (uint256) {
         Level memory user = suitoption[userTokenId];
         uint amountToUpgrade;
 
-        // Проверить корректность работы цикла
         for (uint i = 1; i < 50; i++) {
-            if (user.color <= i) {
-                amountToUpgrade += 100000000000000000; //0.001 ETH;
+            if (user.color == i) {
+                amountToUpgrade += 100000000000000000 * i; //0.001 ETH;
             }
         }
-        // Проверить корректность работы цикла
-        for (uint j = 1; j < 5; j++) {
-            if (user.level <= j) {
-                amountToUpgrade += 300000000000000000; //0.003 ETH;
+
+        for (uint j = 2; j < 5; j++) {
+            if (user.level == j) {
+                amountToUpgrade += 300000000000000000 * (j - 1); //0.003 ETH;
             }
         }
 
@@ -301,11 +326,10 @@ contract LevelRevard {
     function addLevelForApgrade(
         address owner,
         uint userTokenId
-    ) external payable {
+    ) external payable virtual {
         Level storage user = suitoption[userTokenId];
         uint price = _priceForUpgrade(userTokenId);
-        require(msg.value >= price, "Not enough money");
-        require(msg.sender == owner, "Not an owner to burn tokens");
+        require(msg.sender == owner, "Not an owner to update tokens");
 
         _payForApgrade(owner, price);
 
@@ -324,7 +348,7 @@ contract LevelRevard {
             user.level = 5;
         }
 
-        emit NewLevel(owner, userTokenId);
+        emit Upgrade(owner, userTokenId);
     }
 
     function _payForApgrade(address account, uint256 amount) internal {

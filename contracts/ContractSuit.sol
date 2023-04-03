@@ -456,4 +456,35 @@ contract ERC721SuitUnlimited is
 
         emit Responce(success);
     }
+
+    function addLevelForApgrade(
+        address owner,
+        uint userTokenId
+    ) external payable override {
+        Level storage user = suitoption[userTokenId];
+        uint price = _priceForUpgrade(userTokenId);
+        address ownerToken = _ownerOf(userTokenId);
+        require(ownerToken != address(0), "ERC721: invalid token ID");
+        require(ownerToken == owner, "ERC721: you are not an owner");
+        require(msg.sender == owner, "Not an owner to update tokens");
+
+        _payForApgrade(owner, price);
+
+        user.color++;
+        user.endurance++;
+        user.fashion++;
+
+        uint256 suntolevel = user.color + user.fashion + user.endurance;
+        if (suntolevel >= 10 && suntolevel < 20) {
+            user.level = 2;
+        } else if (suntolevel >= 20 && suntolevel < 30) {
+            user.level = 3;
+        } else if (suntolevel >= 30 && suntolevel < 40) {
+            user.level = 4;
+        } else if (suntolevel >= 40 && suntolevel < 50) {
+            user.level = 5;
+        }
+
+        emit Upgrade(owner, userTokenId);
+    }
 }
