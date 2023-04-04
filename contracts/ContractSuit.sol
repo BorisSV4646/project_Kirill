@@ -398,7 +398,6 @@ contract ERC721SuitUnlimited is
         address owner = _ownerOf(_tokenId);
         require(owner != address(0), "ERC721: invalid token ID");
         require(listedNft.onsail == true, "NFT not on sale");
-        require(msg.value >= listedNft.price, "Not enouth money");
 
         delete listNfts[seller][_tokenId];
 

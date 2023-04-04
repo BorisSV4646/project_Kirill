@@ -1,43 +1,28 @@
-# Sample Hardhat Project
+# Project Suits
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
+This project is a web application for managing a small business. It allows users to create, view, update, and delete information about customers, orders, and products.
 
-Try running some of the following tasks:
+## Getting started
 
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat run scripts/deploy.js
-```
+To run the application locally, follow these steps:
 
-1. You need deploy contract ERC20_ST.sol, after deploy ContractSuit.sol and change creater in ERC20_ST.sol to address contract ContractSuit.sol
-2.
+1. Clone the repository:
 
-Функции контракта:
+git clone https://github.com/BorisSV4646/project_Kirill.git
 
-```
-ERC20_ST:
-```
+2. Install the dependencies:
 
-Просмотр (без газа):
+cd project_Kirill
+npm install
 
-1. Тотал суплая.
-2. Капы токена
-3. Символа токена
-4. Имени токена
-5. Колличества нулей токена
-6. Создателя токена
-7. Баланса адреса (вставить адрес)
-8. Размер разрешения на трату (адрес владельца, адрес кто тратит)
+## Contributing
 
-Функции (с газом):
+If you'd like to contribute to this project, feel free to create a pull request.
 
-1. Трансфер (кому, сколько)
-2. Трансфер от (от кого, кому, сколько)
-3. Установить нового создателя (адрес новый создателя)
-4. Добавить одобрение
-5. Убрать одобрение
-6. Выдать одобрение
-7. Создание токенов
+## License
+
+This project is licensed under the MIT License. See the LICENSE file for details.
+
+## Acknowledgements
+
+This project was created using Node.js, Express, MongoDB, and Hardhat.
