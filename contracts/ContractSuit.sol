@@ -57,6 +57,10 @@ contract ERC721SuitUnlimited is
         bool onsail
     );
 
+    event NewPrice(uint256 newprice);
+
+    event NewFee(uint256 newplatformFee);
+
     event CancelListedNFT(uint256 indexed tokenId, address indexed seller);
 
     event BoughtNFT(
@@ -87,6 +91,7 @@ contract ERC721SuitUnlimited is
     receive() external payable {}
 
     function getadress(address contracttoken_) internal returns (address) {
+        require(contracttoken_ != address(0), "Zero address");
         _contracttoken = contracttoken_;
         return contracttoken_;
     }
@@ -348,9 +353,20 @@ contract ERC721SuitUnlimited is
         payable(msg.sender).transfer(balance);
     }
 
+    function withdrawEthFromToken() public onlyCreater {
+        (bool success, ) = _contracttoken.call(
+            abi.encodeWithSignature("withdraw()")
+        );
+        require(success, "Cant withdraw ETH");
+
+        emit Responce(success);
+    }
+
     function setPrice(uint256 _newPrice) public onlyCreater {
         require(_newPrice > 0, "Price can`t 0");
         _tokenPrice = _newPrice;
+
+        emit NewPrice(_newPrice);
     }
 
     function getPrice() public view returns (uint256) {
@@ -445,9 +461,12 @@ contract ERC721SuitUnlimited is
     function updatePlatformFee(uint256 _platformFee) public onlyCreater {
         require(_platformFee <= 10000, "can't more than 10 percent");
         platformFee = _platformFee;
+
+        emit NewFee(_platformFee);
     }
 
     function changeCreatorERC20ST(address newcreater) public onlyCreater {
+        require(newcreater != address(0), "Zero address");
         (bool success, ) = _contracttoken.call(
             abi.encodeWithSignature("setNewCreater(address)", newcreater)
         );

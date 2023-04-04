@@ -6,11 +6,11 @@ module.exports = {
   networks: {
     hardhat: {},
     goerly: {
-      url: [process.env.INFURA_URL_GOERLY],
+      url: process.env.INFURA_URL_GOERLY,
       accounts: [process.env.PRIVATE_KEY],
     },
     sepolia: {
-      url: [process.env.INFURA_URL_SEPOLYA],
+      url: process.env.INFURA_URL_SEPOLYA,
       accounts: [process.env.PRIVATE_KEY],
     },
   },

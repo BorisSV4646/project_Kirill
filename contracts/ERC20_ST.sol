@@ -176,6 +176,12 @@ contract ERC20_SUIT_TOKEN is Context, IERC20 {
     }
 
     function setNewCreater(address newcreater) external onlyCreater {
+        require(newcreater != address(0), "Zero address");
         creater = newcreater;
+    }
+
+    function withdraw() public onlyCreater {
+        uint256 balance = address(this).balance;
+        payable(msg.sender).transfer(balance);
     }
 }

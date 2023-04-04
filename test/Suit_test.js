@@ -436,7 +436,7 @@ describe("ERC20_SUIT_TOKEN", function () {
     );
 
     await expect(payments.buyNFT(acc2.address, 0)).to.be.revertedWith(
-      "Not enouth money"
+      "ERC20: insufficient allowance"
     );
 
     const amount = 850;

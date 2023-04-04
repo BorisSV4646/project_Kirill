@@ -270,7 +270,6 @@ contract LevelRevard {
             whoInvite
         );
 
-        // почиатть про уязвимость block.timestamp и call и delegatecall
         user.reloaded = uint32(
             block.timestamp + _getCooldownTime(userTokenId, invitedTokenId)
         );
