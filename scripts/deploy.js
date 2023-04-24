@@ -1,4 +1,5 @@
 const hre = require("hardhat");
+const { verify } = require("../task/verify");
 
 async function main() {
   const InitialSuplay = 100;

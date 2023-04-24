@@ -322,6 +322,7 @@ contract LevelRevard {
         return amountToUpgrade;
     }
 
+    // TODO: сделать перезарядку также, чтобы не смогли тупо скупить обновления
     function addLevelForApgrade(
         address owner,
         uint userTokenId
