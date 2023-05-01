@@ -17,6 +17,9 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.8.1",
+    "@thirdweb-dev/react": "^3.11.8",
+    "@thirdweb-dev/sdk": "^3.10.11",
+    "@thirdweb-dev/storage": "^1.1.2",
     "dotenv": "^16.0.3"
   }
 }

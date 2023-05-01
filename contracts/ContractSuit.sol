@@ -29,9 +29,10 @@ contract ERC721SuitUnlimited is
 
     Counters.Counter private _nextTokenId;
     using Counters for Counters.Counter;
-    uint256 private _tokenPrice = 50000000000000000; //0.05 ETH
+    uint256 private _tokenPrice = 10000000000000000; //0.01 ETH
     uint256 private platformFee;
-    string private _baseURI;
+    string private _baseURI =
+        "ipfs://bafybeid36xnf6ravvigb7a46uwtspzypepukz4yu3zmzbloh2fuuzaad24/";
     string private _name;
     string private _symbol;
     bool public saleIsActive = true;
