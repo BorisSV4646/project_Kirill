@@ -9,7 +9,7 @@ for (let i = 1; i <= 10; i++) {
   json.image =
     "ipfs://bafybeieen27j3ghmr66b6zlkzqb25h4p5gaf4wggrn2uu2kfv7opnaofru/" +
     i +
-    ".png";
+    ".jpg";
 
   fs.writeFileSync(filePath, JSON.stringify(json));
 }

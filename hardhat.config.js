@@ -19,6 +19,14 @@ module.exports = {
       url: process.env.INFURA_URL_SEPOLYA,
       accounts: [process.env.PRIVATE_KEY],
     },
+    mumbai: {
+      url: process.env.MUMBAI_RPC_URL,
+      accounts: [process.env.PRIVATE_KEY],
+    },
+    polygon: {
+      url: process.env.POLYGON_RPC_MAINET,
+      accounts: [process.env.PRIVATE_KEY],
+    },
   },
   solidity: {
     version: "0.8.17",
@@ -30,6 +38,6 @@ module.exports = {
     },
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
+    apiKey: process.env.MATIC_API_KEY,
   },
 };

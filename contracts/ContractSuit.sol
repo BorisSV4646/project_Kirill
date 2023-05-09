@@ -32,7 +32,7 @@ contract ERC721SuitUnlimited is
     uint256 private _tokenPrice = 10000000000000000; //0.01 ETH
     uint256 private platformFee;
     string private _baseURI =
-        "ipfs://bafybeid36xnf6ravvigb7a46uwtspzypepukz4yu3zmzbloh2fuuzaad24/";
+        "ipfs://bafybeifglluvlsceknmh3dqsho3ci7xmpjvn6fhox72ve54ncpxvwljbgq/";
     string private _name;
     string private _symbol;
     bool public saleIsActive = true;
@@ -232,7 +232,7 @@ contract ERC721SuitUnlimited is
     }
 
     function _safeMint(address to) public payable {
-        uint256 currentTokenId = _nextTokenId.current();
+        uint256 currentTokenId = _nextTokenId.current() + 1;
         _nextTokenId.increment();
         _safeMint(to, currentTokenId, "");
     }
